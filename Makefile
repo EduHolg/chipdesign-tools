@@ -3,7 +3,7 @@ all: print
 PDK=ihp-sg13g2
 SHARED_DIR=$(abspath ./shared_xserver)
 
-#Based on https://stackoverflow.com/a/70663753
+# Based on https://stackoverflow.com/a/70663753
 ifneq (,$(wildcard ./.env))
     include .env
     export
@@ -22,19 +22,15 @@ JUPYTER_PORT=8888
 endif
 
 ifeq (,$(DOCKER_USER))
-DOCKER_USER=isaiassh
+DOCKER_USER=eduholweb
 endif
 
 ifeq (,$(DOCKER_IMAGE))
-DOCKER_IMAGE=unic-cass-tools
+DOCKER_IMAGE=chipdesign-tools
 endif
 
 ifeq (,$(DOCKER_TAG))
-ifneq (,$(ENABLE_GUI))
-DOCKER_TAG=1.1.0_vnc
-else
 DOCKER_TAG=1.1.0
-endif
 endif
 
 DOCKER_IMAGE_TAG=$(DOCKER_USER)/$(DOCKER_IMAGE):$(DOCKER_TAG)
@@ -52,11 +48,12 @@ endif
 ifeq (Windows_NT,$(OS))
 
 SHARED_DIR_HASH := $(shell echo | set /p="$(SHARED_DIR)" > %TMP%/hash.txt | certutil -hashfile %TMP%/hash.txt SHA256 | findstr /v "hash")
-CONTAINER_NAME  := unic-cass-tools-$(SHARED_DIR_HASH)
+CONTAINER_NAME  := chipdesign-tools-$(SHARED_DIR_HASH)
 CONTAINER_ID    := $(shell docker container ls -a -q -f "name=$(CONTAINER_NAME)")
 
 USER_ID=1000
 USER_GROUP=1000
+
 DOCKER_RUN=docker run -it $(_DOCKER_ROOT_USER) \
 	--mount type=bind,source=$(SHARED_DIR),target=/home/designer/shared \
 	--user $(USER_ID):$(USER_GROUP) \
@@ -83,11 +80,10 @@ USER_GROUP=$(shell id -g)
 ifeq (Linux,$(UNAME_S))
 
 SHARED_DIR_HASH := $(shell echo -n $(SHARED_DIR) | md5sum | awk '{print $$1}')
-CONTAINER_NAME  := unic-cass-tools-$(SHARED_DIR_HASH)
+CONTAINER_NAME  := chipdesign-tools-$(SHARED_DIR_HASH)
 CONTAINER_ID    := $(shell docker container ls -a -q -f "name=$(CONTAINER_NAME)")
 
 # Detect XAUTHORITY location - use environment variable if set, otherwise try common locations
-# Check multiple possible locations and use the first one that exists
 XAUTHORITY_HOST := $(shell if [ -n "$$XAUTHORITY" ] && [ -f "$$XAUTHORITY" ]; then echo "$$XAUTHORITY"; elif [ -f "$$HOME/.Xauthority" ]; then echo "$$HOME/.Xauthority"; elif [ -f "/home/$(USER)/.Xauthority" ]; then echo "/home/$(USER)/.Xauthority"; fi)
 XAUTHORITY_CONTAINER := /tmp/.Xauthority
 
@@ -113,10 +109,9 @@ DOCKER_RUN=docker run -it $(_DOCKER_ROOT_USER) \
 	-e PULSE_SERVER \
 	-e USER_ID=$(USER_ID) \
 	-e USER_GROUP=$(USER_GROUP) \
-	#--device=/dev/dri:/dev/dri \
 	-p $(VNC_PORT):5901 \
 	-p $(WEBSERVER_PORT):80 \
-	--name $(CONTAINER_NAME) 
+	--name $(CONTAINER_NAME)
 
 # _XSERVER_EXISTS and START_XSERVER are not required
 
@@ -150,17 +145,13 @@ DOCKER_RUN=docker run -it --rm $(_DOCKER_ROOT_USER) \
 	-e USER_GROUP=$(USER_GROUP) \
 	-p 8888:8888
 
-# _XSERVER_EXISTS:=$(shell ?)
-# START_XSERVER=xquartz ... ?
-
-endif # Linux/Mac differenciation
-endif # Windows differenciation
+endif
+endif
 
 
 ########################
 # Docker Image Commands
 ########################
-
 
 print:
 	@echo DOCKER_IMAGE_TAG ........ $(DOCKER_IMAGE_TAG)
@@ -176,9 +167,8 @@ print:
 	@echo _XSERVER_EXISTS ......... $(_XSERVER_EXISTS)
 	@echo DOCKER_RUN .............. $(DOCKER_RUN)
 
-
 build:
-	BUILDKIT_PROGRESS=plain docker build $(_DOCKER_NO_CACHE) -t $(DOCKER_IMAGE_TAG) --build-arg ENABLE_GUI=$(ENABLE_GUI) --target unic-cass-tools-nix .
+	BUILDKIT_PROGRESS=plain docker build $(_DOCKER_NO_CACHE) -t $(DOCKER_IMAGE_TAG) .
 	docker image ls $(DOCKER_IMAGE_TAG)
 
 
@@ -194,6 +184,7 @@ endif
 
 start: xserver pull
 	$(DOCKER_RUN) --rm $(DOCKER_IMAGE_TAG)
+
 
 start-vnc:
 	$(DOCKER_RUN_VNC) $(DOCKER_IMAGE_TAG) --vnc --wait
