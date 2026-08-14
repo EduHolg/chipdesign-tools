@@ -1,4 +1,3 @@
-cat > README.md <<'EOF'
 # Chip Design Tools
 
 [![Docker Image](https://img.shields.io/badge/Docker-eduholweb%2Fchipdesign--tools-blue?style=flat-square&logo=docker)](https://hub.docker.com/r/eduholweb/chipdesign-tools)
